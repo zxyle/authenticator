@@ -9,7 +9,8 @@
     const oneTimeCode = document.querySelectorAll('input[autocomplete="one-time-code"]');
     oneTimeCode.forEach((el) => inputs.push(el));
     const candidates = document.querySelectorAll('input[type="text"], input[type="tel"], input:not([type])');
-    const keywords = /otp|验证|code|totp|mfa|动态码|验证码|一次性|one-time|one_time|2fa|two.factor/i;
+    const keywords =
+      /otp|验证|code|totp|mfa|动态码|验证码|一次性|one-time|one_time|2fa|two.factor|google|verification|authenticator|passcode|pin|googlecode/i;
     candidates.forEach((el) => {
       if (inputs.indexOf(el) >= 0) return;
       const placeholder = (el.getAttribute('placeholder') || '').toLowerCase();
@@ -26,8 +27,17 @@
   function fillInput(input, token) {
     if (!input || !token) return;
     input.focus();
-    input.value = token;
-    input.dispatchEvent(new Event('input', { bubbles: true }));
+    const proto = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    if (proto && proto.set) {
+      proto.set.call(input, token);
+    } else {
+      input.value = token;
+    }
+    try {
+      input.dispatchEvent(new InputEvent('input', { bubbles: true, data: token, inputType: 'insertText' }));
+    } catch (_) {
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
     input.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
@@ -110,11 +120,35 @@
     });
   }
 
+  function scheduleInjectFillButtons() {
+    if (scheduleInjectFillButtons._t) clearTimeout(scheduleInjectFillButtons._t);
+    scheduleInjectFillButtons._t = setTimeout(() => {
+      scheduleInjectFillButtons._t = null;
+      injectFillButtons();
+    }, 200);
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', injectFillButtons);
+    document.addEventListener('DOMContentLoaded', () => {
+      injectFillButtons();
+      scheduleInjectFillButtons();
+    });
   } else {
     injectFillButtons();
+    scheduleInjectFillButtons();
   }
+
+  const obsRoot = document.documentElement;
+  if (obsRoot) {
+    const mo = new MutationObserver(() => scheduleInjectFillButtons());
+    mo.observe(obsRoot, { childList: true, subtree: true });
+  }
+
+  let spaPolls = 0;
+  const spaTimer = setInterval(() => {
+    injectFillButtons();
+    if (++spaPolls >= 30) clearInterval(spaTimer);
+  }, 1000);
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === 'FILL_OTP') {
