@@ -21,6 +21,21 @@
       <h2>已保存的 TOTP</h2>
       <ul id="list" class="list"></ul>
     </section>
+    <section class="section import-section">
+      <h2>一键导入 Google Authenticator</h2>
+      <p class="hint">在手机 Google Authenticator 中导出账号后，用另一设备拍照二维码并在这里上传。</p>
+      <div class="form">
+        <label>二维码图片 <input id="migrationImage" type="file" accept="image/*" /></label>
+        <label>批量设置域名匹配（可选） <input id="importDomainPattern" type="text" placeholder="例如：*.github.com" /></label>
+        <div class="import-actions">
+          <button id="previewImportBtn" type="button" class="btn">预览导入</button>
+          <button id="runImportBtn" type="button" class="btn btn-primary">确认导入</button>
+          <button id="rollbackImportBtn" type="button" class="btn">撤销上次导入</button>
+        </div>
+        <div id="importStatus" class="import-status"></div>
+      </div>
+      <div id="importPreview" class="import-preview"></div>
+    </section>
     <section class="section api-section">
       <h2>同步设置（预留）</h2>
       <p class="hint">后续可从后端 API 拉取 TOTP 列表，此处仅保存配置。</p>
@@ -31,6 +46,7 @@
       </div>
     </section>
   </div>
+  <script src="import-google-auth.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

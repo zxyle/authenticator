@@ -60,13 +60,52 @@ h1 {
 }
 .list li {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
   padding: 10px 12px;
   border: 1px solid #e8eaed;
   border-radius: 6px;
   margin-bottom: 8px;
   background: #fff;
+}
+.list-row-view {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.list-row-edit {
+  width: 100%;
+}
+.list-row-edit .edit-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.list-row-edit .edit-label {
+  display: block;
+  font-size: 12px;
+  color: #5f6368;
+}
+.list-row-edit .edit-label input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+.list-row-edit .secret-readonly {
+  background: #f8f9fa;
+  color: #5f6368;
+  cursor: not-allowed;
+}
+.list-row-edit .edit-actions {
+  margin-top: 0;
 }
 .list li .name {
   font-weight: 500;
@@ -96,8 +135,64 @@ h1 {
   color: #d93025;
   border-color: #d93025;
 }
+.list li button.edit {
+  color: #1a73e8;
+  border-color: #1a73e8;
+}
+.list li button.save {
+  color: #fff;
+  background: #1a73e8;
+  border-color: #1a73e8;
+}
+.list li button.save:hover {
+  background: #1765cc;
+}
+.list li button.cancel-edit {
+  border-color: #dadce0;
+}
 .api-section .hint {
   font-size: 12px;
   color: #5f6368;
   margin-bottom: 12px;
+}
+.import-section .hint {
+  font-size: 12px;
+  color: #5f6368;
+  margin-bottom: 12px;
+}
+.import-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.import-status {
+  margin-top: 10px;
+  min-height: 20px;
+  font-size: 13px;
+  color: #3c4043;
+}
+.import-status.error {
+  color: #d93025;
+}
+.import-status.success {
+  color: #188038;
+}
+.import-preview {
+  margin-top: 12px;
+  border: 1px solid #e8eaed;
+  border-radius: 6px;
+  padding: 10px;
+  background: #fff;
+  display: none;
+}
+.import-preview.visible {
+  display: block;
+}
+.import-preview ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.import-preview .meta {
+  color: #5f6368;
+  font-size: 12px;
 }

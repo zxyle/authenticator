@@ -42,14 +42,18 @@
   }
 
   function domainMatches(pattern, host) {
-    if (!pattern) return true;
+    if (!pattern) return false;
     const re = pattern.replace(/\./g, '\\.').replace(/\*\*/g, '.*').replace(/\*/g, '[^.]*');
     return new RegExp('^' + re + '$', 'i').test(host);
   }
 
   function getEntriesForHost(entries, host) {
-    const matched = entries.filter((e) => domainMatches(e.domainPattern, host));
-    return matched.length ? matched : entries;
+    const withPattern = entries.filter((e) => (e.domainPattern || '').trim());
+    const withoutPattern = entries.filter((e) => !(e.domainPattern || '').trim());
+    const matched = withPattern.filter((e) => domainMatches((e.domainPattern || '').trim(), host));
+    // 规则：优先使用明确配置了域名且匹配的条目；没有命中时再回退到未配置域名的通用条目。
+    if (matched.length) return matched;
+    return withoutPattern;
   }
 
   const INJECTED_ATTR = 'data-totp-autofill-injected';
