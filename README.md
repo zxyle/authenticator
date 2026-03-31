@@ -4,9 +4,10 @@
 
 ## 安装
 
-1. 打开 Chrome 浏览器，地址栏输入 `chrome://extensions/`
-2. 开启右上角「开发者模式」
-3. 点击「加载已解压的扩展程序」，选择本目录 `chrome-extension`
+1. 代码克隆 `git clone https://github.com/zxyle/authenticator.git`
+2. 打开 Chrome 浏览器，地址栏输入 `chrome://extensions/`
+3. 开启右上角「开发者模式」
+4. 点击左上角「加载已解压的扩展程序」，选择本目录 `chrome-extension`
 
 ## 使用
 
