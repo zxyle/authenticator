@@ -223,20 +223,84 @@
     };
   }
 
-  async function readQrTextFromFile(file) {
-    if (!file) throw new Error('请先选择二维码图片');
+  function normalizeSecret(secret) {
+    return (secret || '').replace(/\s/g, '').toUpperCase();
+  }
+
+  async function decodeQrFromImageBlob(blob) {
+    if (!blob) throw new Error('图片数据为空');
     if (typeof BarcodeDetector === 'undefined') {
       throw new Error('当前浏览器不支持 BarcodeDetector，建议升级 Chrome 后重试');
     }
     const detector = new BarcodeDetector({ formats: ['qr_code'] });
-    const bitmap = await createImageBitmap(file);
-    const barcodes = await detector.detect(bitmap);
-    if (!barcodes || !barcodes.length) {
-      throw new Error('未识别到二维码，请更换更清晰的图片');
+    const bitmap = await createImageBitmap(blob);
+    try {
+      const barcodes = await detector.detect(bitmap);
+      if (!barcodes || !barcodes.length) {
+        throw new Error('未识别到二维码，请更换更清晰的图片');
+      }
+      const rawValue = barcodes[0].rawValue || '';
+      if (!rawValue.trim()) throw new Error('二维码内容为空');
+      return rawValue;
+    } finally {
+      bitmap.close();
     }
-    const rawValue = barcodes[0].rawValue || '';
-    if (!rawValue.trim()) throw new Error('二维码内容为空');
-    return rawValue;
+  }
+
+  async function readQrTextFromFile(file) {
+    if (!file) throw new Error('请先选择二维码图片');
+    return decodeQrFromImageBlob(file);
+  }
+
+  function parseOtpauthTotpUri(uri) {
+    const trimmed = uri.trim();
+    const match = trimmed.match(/^otpauth:\/\/totp\/([^?]*)\?(.*)$/i);
+    if (!match) throw new Error('无效的 otpauth TOTP 链接');
+    const labelEncoded = match[1];
+    const qs = match[2];
+    const params = new URLSearchParams(qs);
+    const secret = normalizeSecret(params.get('secret') || '');
+    if (!secret) throw new Error('二维码缺少 secret');
+    const issuer = (params.get('issuer') || '').trim();
+    let label = '';
+    try {
+      label = decodeURIComponent(labelEncoded.replace(/\+/g, ' ')) || '';
+    } catch {
+      label = labelEncoded;
+    }
+    if (!label) label = issuer || '未命名';
+    const entryId = 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+    return {
+      id: entryId,
+      label,
+      issuer: issuer || undefined,
+      secret,
+      source: 'qr-add',
+    };
+  }
+
+  /**
+   * 将二维码文本转为可写入 storage 的条目列表（TOTP；迁移类会过滤 HOTP）
+   */
+  function entriesFromQrPayload(rawValue) {
+    const trimmed = (rawValue || '').trim();
+    if (!trimmed) throw new Error('二维码内容为空');
+    if (trimmed.startsWith('otpauth-migration://offline?')) {
+      const decoded = decodeFromMigrationUri(trimmed);
+      const totpEntries = decoded.entries.filter((e) => (e.importMeta?.type || 2) !== 1);
+      if (!totpEntries.length) throw new Error('二维码中没有可导入的 TOTP 条目');
+      return totpEntries.map((entry) => ({
+        ...entry,
+        secret: normalizeSecret(entry.secret),
+      }));
+    }
+    if (/^otpauth:\/\/totp\//i.test(trimmed)) {
+      return [parseOtpauthTotpUri(trimmed)];
+    }
+    if (/^otpauth:\/\/hotp\//i.test(trimmed)) {
+      throw new Error('暂不支持 HOTP，请使用 TOTP 二维码');
+    }
+    throw new Error('无法识别二维码（需 otpauth TOTP 或 Google Authenticator 导出）');
   }
 
   async function decodeFromImageFile(file) {
@@ -247,5 +311,7 @@
   window.GoogleAuthImport = {
     decodeFromImageFile,
     decodeFromMigrationUri,
+    decodeQrFromImageBlob,
+    entriesFromQrPayload,
   };
 })();

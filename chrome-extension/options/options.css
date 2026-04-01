@@ -1,5 +1,5 @@
 .page {
-  max-width: 560px;
+  max-width: 880px;
   margin: 0 auto;
   padding: 24px;
   font-family: system-ui, -apple-system, sans-serif;
@@ -15,8 +15,24 @@ h1 {
 .section h2 {
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 12px;
+  margin: 0;
   color: #3c4043;
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.toolbar .btn {
+  margin-top: 0;
 }
 .form label {
   display: block;
@@ -46,124 +62,216 @@ h1 {
   cursor: pointer;
   margin-top: 8px;
 }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .btn-primary {
   background: #1a73e8;
   color: #fff;
 }
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: #1765cc;
 }
-.list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.list li {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 10px;
-  padding: 10px 12px;
+.table-wrap {
   border: 1px solid #e8eaed;
-  border-radius: 6px;
-  margin-bottom: 8px;
+  border-radius: 8px;
+  overflow: auto;
   background: #fff;
 }
-.list-row-view {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.list-row-edit {
+.data-table {
   width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
 }
-.list-row-edit .edit-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 8px;
+.data-table th,
+.data-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #e8eaed;
+  vertical-align: middle;
 }
-.list-row-edit .edit-label {
-  display: block;
-  font-size: 12px;
+.data-table thead th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #3c4043;
+  white-space: nowrap;
+}
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.data-table tbody tr:hover {
+  background: #fafafa;
+}
+.col-index {
+  width: 1%;
+  min-width: 44px;
+  text-align: center;
+  color: #5f6368;
+  font-variant-numeric: tabular-nums;
+}
+.cell-index {
+  text-align: center;
+  color: #5f6368;
+  font-variant-numeric: tabular-nums;
+}
+.col-name {
+  min-width: 160px;
+}
+.col-domain {
+  min-width: 140px;
   color: #5f6368;
 }
-.list-row-edit .edit-label input {
-  display: block;
-  width: 100%;
-  margin-top: 4px;
-  padding: 8px 10px;
-  border: 1px solid #dadce0;
-  border-radius: 6px;
-  font-size: 13px;
-  box-sizing: border-box;
+.col-actions {
+  width: 1%;
+  white-space: nowrap;
 }
-.list-row-edit .secret-readonly {
+.cell-name {
+  font-weight: 500;
+  color: #202124;
+}
+.cell-domain {
+  color: #5f6368;
+}
+.cell-domain.is-empty {
+  color: #9aa0a6;
+}
+.row-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  margin: 0;
+  border-radius: 6px;
+  border: 1px solid #dadce0;
+  background: #fff;
+  cursor: pointer;
+  color: #5f6368;
+}
+.btn-icon:hover {
+  background: #f1f3f4;
+}
+.btn-icon-svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+.btn-icon.edit {
+  color: #1a73e8;
+  border-color: #aecbfa;
+}
+.btn-icon.edit:hover {
+  background: #e8f0fe;
+}
+.btn-icon.delete {
+  color: #d93025;
+  border-color: #f5c6c0;
+}
+.btn-icon.delete:hover {
+  background: #fce8e6;
+}
+.empty-hint {
+  padding: 16px;
+  text-align: center;
+  color: #5f6368;
+  font-size: 13px;
+  border: 1px dashed #dadce0;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.btn-page {
+  margin-top: 0;
+  background: #fff;
+  border: 1px solid #dadce0;
+}
+.btn-page:hover:not(:disabled) {
+  background: #f1f3f4;
+}
+.page-info {
+  font-size: 13px;
+  color: #5f6368;
+}
+.modal {
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  max-width: calc(100vw - 48px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+.modal::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+.modal-add {
+  width: min(480px, 100vw - 48px);
+}
+.modal-wide {
+  width: min(520px, 100vw - 48px);
+}
+.modal-inner {
+  padding: 20px 24px;
+}
+.modal-title {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #202124;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+.modal-actions .btn {
+  margin-top: 0;
+}
+.modal-actions-footer {
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #e8eaed;
+}
+.secret-readonly {
   background: #f8f9fa;
   color: #5f6368;
   cursor: not-allowed;
 }
-.list-row-edit .edit-actions {
-  margin-top: 0;
-}
-.list li .name {
-  font-weight: 500;
-  color: #202124;
-}
-.list li .domain {
+.hint {
   font-size: 12px;
   color: #5f6368;
-  margin-top: 2px;
+  margin: 0 0 12px;
+  line-height: 1.45;
 }
-.list li .actions {
-  display: flex;
-  gap: 8px;
-}
-.list li button {
-  padding: 4px 10px;
-  font-size: 12px;
-  border-radius: 4px;
-  border: 1px solid #dadce0;
-  background: #fff;
-  cursor: pointer;
-}
-.list li button:hover {
+.hint code {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: #3c4043;
   background: #f1f3f4;
-}
-.list li button.delete {
-  color: #d93025;
-  border-color: #d93025;
-}
-.list li button.edit {
-  color: #1a73e8;
-  border-color: #1a73e8;
-}
-.list li button.save {
-  color: #fff;
-  background: #1a73e8;
-  border-color: #1a73e8;
-}
-.list li button.save:hover {
-  background: #1765cc;
-}
-.list li button.cancel-edit {
-  border-color: #dadce0;
-}
-.api-section .hint {
-  font-size: 12px;
-  color: #5f6368;
-  margin-bottom: 12px;
-}
-.import-section .hint {
-  font-size: 12px;
-  color: #5f6368;
-  margin-bottom: 12px;
+  padding: 1px 4px;
+  border-radius: 4px;
 }
 .import-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+.import-actions .btn {
+  margin-top: 0;
 }
 .import-status {
   margin-top: 10px;
@@ -182,7 +290,7 @@ h1 {
   border: 1px solid #e8eaed;
   border-radius: 6px;
   padding: 10px;
-  background: #fff;
+  background: #fafafa;
   display: none;
 }
 .import-preview.visible {

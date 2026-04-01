@@ -1,25 +1,53 @@
 (function () {
   const STORAGE_KEYS = {
     TOTP_ENTRIES: 'totpEntries',
-    API_ENDPOINT: 'apiEndpoint',
-    API_TOKEN: 'apiToken',
   };
 
-  const listEl = document.getElementById('list');
+  const PAGE_SIZE = 10;
+
+  const tableBodyEl = document.getElementById('tableBody');
+  const emptyHintEl = document.getElementById('emptyHint');
+  const paginationEl = document.getElementById('pagination');
+  const pagePrevEl = document.getElementById('pagePrev');
+  const pageNextEl = document.getElementById('pageNext');
+  const pageInfoEl = document.getElementById('pageInfo');
+
+  const openAddDialogBtn = document.getElementById('openAddDialogBtn');
+  const openQrAddDialogBtn = document.getElementById('openQrAddDialogBtn');
+  const openImportDialogBtn = document.getElementById('openImportDialogBtn');
+  const addDialog = document.getElementById('addDialog');
+  const addForm = document.getElementById('addForm');
+  const addCancelBtn = document.getElementById('addCancelBtn');
   const labelEl = document.getElementById('label');
   const secretEl = document.getElementById('secret');
   const domainPatternEl = document.getElementById('domainPattern');
-  const addBtn = document.getElementById('addBtn');
-  const apiEndpointEl = document.getElementById('apiEndpoint');
-  const apiTokenEl = document.getElementById('apiToken');
-  const saveApiBtn = document.getElementById('saveApiBtn');
+
+  const editDialog = document.getElementById('editDialog');
+  const editCancelBtn = document.getElementById('editCancelBtn');
+  const editSaveBtn = document.getElementById('editSaveBtn');
+  const editLabelEl = document.getElementById('editLabel');
+  const editDomainPatternEl = document.getElementById('editDomainPattern');
+  const editSecretEl = document.getElementById('editSecret');
+  let editingEntryId = null;
+
+  const qrAddDialog = document.getElementById('qrAddDialog');
+  const qrAddImageEl = document.getElementById('qrAddImage');
+  const qrAddDomainPatternEl = document.getElementById('qrAddDomainPattern');
+  const qrAddStatusEl = document.getElementById('qrAddStatus');
+  const qrAddCancelBtn = document.getElementById('qrAddCancelBtn');
+  const qrAddSubmitBtn = document.getElementById('qrAddSubmitBtn');
+
+  const importDialog = document.getElementById('importDialog');
+  const importCloseBtn = document.getElementById('importCloseBtn');
   const migrationImageEl = document.getElementById('migrationImage');
-  const importDomainPatternEl = document.getElementById('importDomainPattern');
   const previewImportBtn = document.getElementById('previewImportBtn');
   const runImportBtn = document.getElementById('runImportBtn');
   const rollbackImportBtn = document.getElementById('rollbackImportBtn');
   const importStatusEl = document.getElementById('importStatus');
   const importPreviewEl = document.getElementById('importPreview');
+
+  let cachedEntries = [];
+  let currentPage = 1;
   let pendingPreview = null;
   let lastImportedIds = [];
 
@@ -41,142 +69,115 @@
     });
   }
 
-  function renderList(entries) {
-    listEl.innerHTML = '';
-    entries.forEach((entry) => {
-      const li = document.createElement('li');
+  function totalPages(n) {
+    return Math.max(1, Math.ceil(n / PAGE_SIZE));
+  }
 
-      const viewWrap = document.createElement('div');
-      viewWrap.className = 'list-row-view';
-      const infoCol = document.createElement('div');
-      const nameEl = document.createElement('div');
-      nameEl.className = 'name';
-      nameEl.textContent = entry.label || entry.issuer || '未命名';
-      infoCol.appendChild(nameEl);
-      if (entry.domainPattern) {
-        const domainEl = document.createElement('div');
-        domainEl.className = 'domain';
-        domainEl.textContent = entry.domainPattern;
-        infoCol.appendChild(domainEl);
-      }
-      const actionsView = document.createElement('div');
-      actionsView.className = 'actions';
+  function clampPage(entriesLength) {
+    const tp = totalPages(entriesLength);
+    if (currentPage > tp) currentPage = tp;
+    if (currentPage < 1) currentPage = 1;
+  }
+
+  function updatePaginationUi(entriesLength) {
+    if (entriesLength === 0) {
+      paginationEl.hidden = true;
+      return;
+    }
+    paginationEl.hidden = false;
+    const tp = totalPages(entriesLength);
+    pageInfoEl.textContent = '第 ' + currentPage + ' / ' + tp + ' 页，共 ' + entriesLength + ' 条';
+    pagePrevEl.disabled = currentPage <= 1;
+    pageNextEl.disabled = currentPage >= tp;
+  }
+
+  function renderTable(entries) {
+    cachedEntries = entries;
+    clampPage(entries.length);
+
+    const empty = entries.length === 0;
+    emptyHintEl.hidden = !empty;
+    tableBodyEl.closest('.table-wrap').hidden = empty;
+    updatePaginationUi(entries.length);
+
+    tableBodyEl.innerHTML = '';
+    if (empty) return;
+
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const slice = entries.slice(start, start + PAGE_SIZE);
+
+    slice.forEach((entry, i) => {
+      const tr = document.createElement('tr');
+
+      const tdIndex = document.createElement('td');
+      tdIndex.className = 'cell-index';
+      tdIndex.textContent = String(start + i + 1);
+
+      const tdName = document.createElement('td');
+      tdName.className = 'cell-name';
+      tdName.textContent = entry.label || entry.issuer || '未命名';
+
+      const tdDomain = document.createElement('td');
+      tdDomain.className = 'cell-domain' + (entry.domainPattern ? '' : ' is-empty');
+      tdDomain.textContent = entry.domainPattern || '—';
+
+      const tdActions = document.createElement('td');
+      const actions = document.createElement('div');
+      actions.className = 'row-actions';
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
-      editBtn.className = 'edit';
-      editBtn.dataset.id = entry.id;
-      editBtn.textContent = '编辑';
+      editBtn.className = 'btn-icon edit';
+      editBtn.setAttribute('aria-label', '编辑');
+      editBtn.title = '编辑';
+      editBtn.innerHTML =
+        '<svg class="btn-icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"/></svg>';
+
       const delBtn = document.createElement('button');
       delBtn.type = 'button';
-      delBtn.className = 'delete';
-      delBtn.dataset.id = entry.id;
-      delBtn.textContent = '删除';
-      actionsView.appendChild(editBtn);
-      actionsView.appendChild(delBtn);
-      viewWrap.appendChild(infoCol);
-      viewWrap.appendChild(actionsView);
+      delBtn.className = 'btn-icon delete';
+      delBtn.setAttribute('aria-label', '删除');
+      delBtn.title = '删除';
+      delBtn.innerHTML =
+        '<svg class="btn-icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
+      actions.appendChild(editBtn);
+      actions.appendChild(delBtn);
+      tdActions.appendChild(actions);
 
-      const editWrap = document.createElement('div');
-      editWrap.className = 'list-row-edit';
-      editWrap.hidden = true;
-      const editFields = document.createElement('div');
-      editFields.className = 'edit-fields';
-      const labelWrap = document.createElement('label');
-      labelWrap.className = 'edit-label';
-      labelWrap.textContent = '名称 ';
-      const labelInput = document.createElement('input');
-      labelInput.type = 'text';
-      labelInput.value = entry.label || entry.issuer || '';
-      labelInput.placeholder = '显示名称';
-      labelWrap.appendChild(labelInput);
-      const domainWrap = document.createElement('label');
-      domainWrap.className = 'edit-label';
-      domainWrap.textContent = '域名匹配 ';
-      const domainInput = document.createElement('input');
-      domainInput.type = 'text';
-      domainInput.value = entry.domainPattern || '';
-      domainInput.placeholder = '可选，如 *.github.com';
-      domainWrap.appendChild(domainInput);
-      const secretWrap = document.createElement('label');
-      secretWrap.className = 'edit-label';
-      secretWrap.textContent = 'Secret（只读） ';
-      const secretInput = document.createElement('input');
-      secretInput.type = 'text';
-      secretInput.className = 'secret-readonly';
-      secretInput.readOnly = true;
-      secretInput.value = entry.secret || '';
-      secretWrap.appendChild(secretInput);
-      editFields.appendChild(labelWrap);
-      editFields.appendChild(domainWrap);
-      editFields.appendChild(secretWrap);
-      const actionsEdit = document.createElement('div');
-      actionsEdit.className = 'actions edit-actions';
-      const saveBtn = document.createElement('button');
-      saveBtn.type = 'button';
-      saveBtn.className = 'save';
-      saveBtn.textContent = '保存';
-      const cancelBtn = document.createElement('button');
-      cancelBtn.type = 'button';
-      cancelBtn.className = 'cancel-edit';
-      cancelBtn.textContent = '取消';
-      actionsEdit.appendChild(saveBtn);
-      actionsEdit.appendChild(cancelBtn);
-      editWrap.appendChild(editFields);
-      editWrap.appendChild(actionsEdit);
-
-      li.appendChild(viewWrap);
-      li.appendChild(editWrap);
-
-      function showView() {
-        viewWrap.hidden = false;
-        editWrap.hidden = true;
-      }
-      function showEdit() {
-        viewWrap.hidden = true;
-        editWrap.hidden = false;
-        labelInput.value = entry.label || entry.issuer || '';
-        domainInput.value = entry.domainPattern || '';
-        secretInput.value = entry.secret || '';
-      }
-
-      editBtn.addEventListener('click', () => showEdit());
-      cancelBtn.addEventListener('click', () => showView());
-      saveBtn.addEventListener('click', () => {
-        const newLabel = labelInput.value.trim();
-        const newDomain = domainInput.value.trim() || undefined;
-        loadEntries().then((list) => {
-          const idx = list.findIndex((e) => e.id === entry.id);
-          if (idx === -1) return;
-          const prev = list[idx];
-          const updated = { ...prev };
-          updated.label = newLabel || undefined;
-          updated.domainPattern = newDomain;
-          if (prev.source === 'ga-import') {
-            updated.issuer = prev.issuer;
-          } else {
-            updated.issuer = newLabel || undefined;
-          }
-          const next = list.slice();
-          next[idx] = updated;
-          saveEntries(next).then(() => renderList(next));
-        });
-      });
+      editBtn.addEventListener('click', () => openEditDialog(entry));
       delBtn.addEventListener('click', () => {
         loadEntries().then((list) => {
           const next = list.filter((e) => e.id !== entry.id);
-          saveEntries(next).then(() => renderList(next));
+          saveEntries(next).then(() => {
+            clampPage(next.length);
+            renderTable(next);
+          });
         });
       });
 
-      listEl.appendChild(li);
+      tr.appendChild(tdIndex);
+      tr.appendChild(tdName);
+      tr.appendChild(tdDomain);
+      tr.appendChild(tdActions);
+      tableBodyEl.appendChild(tr);
     });
+  }
+
+  function openEditDialog(entry) {
+    editingEntryId = entry.id;
+    editLabelEl.value = entry.label || entry.issuer || '';
+    editDomainPatternEl.value = entry.domainPattern || '';
+    editSecretEl.value = entry.secret || '';
+    editDialog.showModal();
+  }
+
+  function closeEditDialog() {
+    editDialog.close();
   }
 
   function normalizeSecret(secret) {
     return (secret || '').replace(/\s/g, '').toUpperCase();
   }
 
-  /** 同一 Secret 只保留一条，避免用户改名后重复导入 */
   function buildDedupKey(entry) {
     return normalizeSecret(entry.secret);
   }
@@ -185,6 +186,18 @@
     importStatusEl.textContent = text || '';
     importStatusEl.classList.remove('error', 'success');
     if (type) importStatusEl.classList.add(type);
+  }
+
+  function setQrAddStatus(text, type) {
+    qrAddStatusEl.textContent = text || '';
+    qrAddStatusEl.classList.remove('error', 'success');
+    if (type) qrAddStatusEl.classList.add(type);
+  }
+
+  function resetQrAddDialog() {
+    qrAddImageEl.value = '';
+    qrAddDomainPatternEl.value = '';
+    setQrAddStatus('', '');
   }
 
   function renderPreview(preview) {
@@ -222,12 +235,10 @@
     const totpEntries = decoded.entries.filter((e) => (e.importMeta?.type || 2) !== 1);
     const hotpCount = decoded.entries.length - totpEntries.length;
     if (!totpEntries.length) throw new Error('二维码中没有可导入的 TOTP 条目');
-    const domainPattern = importDomainPatternEl.value.trim() || undefined;
-    const entries = totpEntries.map((entry) => {
-      const normalized = { ...entry, secret: normalizeSecret(entry.secret) };
-      if (domainPattern) normalized.domainPattern = domainPattern;
-      return normalized;
-    });
+    const entries = totpEntries.map((entry) => ({
+      ...entry,
+      secret: normalizeSecret(entry.secret),
+    }));
     return {
       entries,
       hotpCount,
@@ -253,7 +264,8 @@
       importedIds.push(entry.id);
     });
     await saveEntries(next);
-    renderList(next);
+    currentPage = totalPages(next.length);
+    renderTable(next);
     lastImportedIds = importedIds;
     return {
       imported: importedIds.length,
@@ -262,9 +274,19 @@
     };
   }
 
-  loadEntries().then(renderList);
+  function resetAddForm() {
+    labelEl.value = '';
+    secretEl.value = '';
+    domainPatternEl.value = '';
+  }
 
-  addBtn.addEventListener('click', () => {
+  openAddDialogBtn.addEventListener('click', () => {
+    resetAddForm();
+    addDialog.showModal();
+  });
+  addCancelBtn.addEventListener('click', () => addDialog.close());
+  addForm.addEventListener('submit', (e) => {
+    e.preventDefault();
     const label = labelEl.value.trim();
     const secret = secretEl.value.trim().replace(/\s/g, '');
     const domainPattern = domainPatternEl.value.trim() || undefined;
@@ -283,31 +305,88 @@
       };
       entries.push(newEntry);
       saveEntries(entries).then(() => {
-        renderList(entries);
-        labelEl.value = '';
-        secretEl.value = '';
-        domainPatternEl.value = '';
+        currentPage = totalPages(entries.length);
+        renderTable(entries);
+        addDialog.close();
+        resetAddForm();
       });
     });
   });
 
-  chrome.storage.local.get([STORAGE_KEYS.API_ENDPOINT, STORAGE_KEYS.API_TOKEN], (data) => {
-    if (data[STORAGE_KEYS.API_ENDPOINT]) apiEndpointEl.value = data[STORAGE_KEYS.API_ENDPOINT];
-    if (data[STORAGE_KEYS.API_TOKEN]) apiTokenEl.value = data[STORAGE_KEYS.API_TOKEN];
+  editDialog.addEventListener('close', () => {
+    editingEntryId = null;
+  });
+  editCancelBtn.addEventListener('click', () => closeEditDialog());
+  editSaveBtn.addEventListener('click', () => {
+    if (!editingEntryId) return;
+    const newLabel = editLabelEl.value.trim();
+    const newDomain = editDomainPatternEl.value.trim() || undefined;
+    loadEntries().then((list) => {
+      const idx = list.findIndex((e) => e.id === editingEntryId);
+      if (idx === -1) {
+        closeEditDialog();
+        return;
+      }
+      const prev = list[idx];
+      const updated = { ...prev };
+      updated.label = newLabel || undefined;
+      updated.domainPattern = newDomain;
+      if (prev.source === 'ga-import') {
+        updated.issuer = prev.issuer;
+      } else {
+        updated.issuer = newLabel || undefined;
+      }
+      const next = list.slice();
+      next[idx] = updated;
+      saveEntries(next).then(() => {
+        renderTable(next);
+        closeEditDialog();
+      });
+    });
   });
 
-  saveApiBtn.addEventListener('click', () => {
-    chrome.storage.local.set(
-      {
-        [STORAGE_KEYS.API_ENDPOINT]: apiEndpointEl.value.trim() || '',
-        [STORAGE_KEYS.API_TOKEN]: apiTokenEl.value.trim() || '',
-      },
-      () => {
-        saveApiBtn.textContent = '已保存';
-        setTimeout(() => (saveApiBtn.textContent = '保存 API 配置'), 1500);
-      }
-    );
+  openQrAddDialogBtn.addEventListener('click', () => {
+    resetQrAddDialog();
+    qrAddDialog.showModal();
   });
+  qrAddCancelBtn.addEventListener('click', () => qrAddDialog.close());
+  qrAddDialog.addEventListener('close', () => resetQrAddDialog());
+  qrAddSubmitBtn.addEventListener('click', async () => {
+    const file = qrAddImageEl.files && qrAddImageEl.files[0];
+    if (!file) {
+      setQrAddStatus('请先选择二维码图片', 'error');
+      return;
+    }
+    setQrAddStatus('正在识别…', '');
+    try {
+      const raw = await window.GoogleAuthImport.decodeQrFromImageBlob(file);
+      const entries = window.GoogleAuthImport.entriesFromQrPayload(raw);
+      if (entries.length > 1) {
+        setQrAddStatus('该二维码包含多个账号，请使用工具栏「导入」批量添加', 'error');
+        return;
+      }
+      const domainPattern = qrAddDomainPatternEl.value.trim() || undefined;
+      const entry = { ...entries[0], domainPattern };
+      const list = await loadEntries();
+      const key = buildDedupKey(entry);
+      if (list.some((e) => buildDedupKey(e) === key)) {
+        setQrAddStatus('该密钥已存在，未添加重复条目', 'error');
+        return;
+      }
+      list.push(entry);
+      await saveEntries(list);
+      currentPage = totalPages(list.length);
+      renderTable(list);
+      qrAddDialog.close();
+    } catch (err) {
+      setQrAddStatus(err && err.message ? err.message : '识别失败', 'error');
+    }
+  });
+
+  openImportDialogBtn.addEventListener('click', () => {
+    importDialog.showModal();
+  });
+  importCloseBtn.addEventListener('click', () => importDialog.close());
 
   previewImportBtn.addEventListener('click', async () => {
     try {
@@ -350,11 +429,29 @@
       const idSet = new Set(lastImportedIds);
       const next = entries.filter((item) => !idSet.has(item.id));
       await saveEntries(next);
-      renderList(next);
+      clampPage(next.length);
+      renderTable(next);
       setImportStatus('已撤销最近一次导入，共移除 ' + (entries.length - next.length) + ' 条', 'success');
       lastImportedIds = [];
     } catch (err) {
       setImportStatus(err && err.message ? err.message : '撤销失败', 'error');
     }
+  });
+
+  pagePrevEl.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage -= 1;
+      renderTable(cachedEntries);
+    }
+  });
+  pageNextEl.addEventListener('click', () => {
+    if (currentPage < totalPages(cachedEntries.length)) {
+      currentPage += 1;
+      renderTable(cachedEntries);
+    }
+  });
+
+  loadEntries().then((entries) => {
+    renderTable(entries);
   });
 })();
