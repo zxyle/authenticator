@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "TOTP 自动填充",
+  "name": "Authenticator",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
