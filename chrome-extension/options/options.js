@@ -145,6 +145,10 @@
 
       editBtn.addEventListener('click', () => openEditDialog(entry));
       delBtn.addEventListener('click', () => {
+        const displayName = entry.label || entry.issuer || '未命名';
+        if (!window.confirm('确定要删除「' + displayName + '」吗？此操作无法撤销。')) {
+          return;
+        }
         loadEntries().then((list) => {
           const next = list.filter((e) => e.id !== entry.id);
           saveEntries(next).then(() => {
