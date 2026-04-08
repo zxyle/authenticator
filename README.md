@@ -1,50 +1,56 @@
-# TOTP 自动填充 - Chrome 扩展
+# Authenticator — Chrome extension for TOTP auto-fill
 
-在浏览器中自动填充 TOTP 验证码到网页 OTP 输入框。
+Automatically fill TOTP codes into OTP input fields on web pages.
 
-## 安装
+## Languages / i18n
 
-1. 下载本项目 或 代码克隆 `git clone https://github.com/zxyle/authenticator.git`
-2. 打开 Chrome 浏览器，地址栏输入 `chrome://extensions/`
-3. 开启右上角「开发者模式」
-4. 点击左上角「加载已解压的扩展程序」，选择本目录 `chrome-extension`
-5. 勾选 「TOTP自动填充」将其固定到浏览器工具栏，点击图标即可填充。
+The extension UI follows **Chrome’s display language**: English (`_locales/en`) and Simplified Chinese (`_locales/zh_CN`). To try another language, change Chrome’s UI language and reload the extension if needed.
 
-## 使用
+When adding new user-visible strings, update **both** `chrome-extension/_locales/en/messages.json` and `chrome-extension/_locales/zh_CN/messages.json`.
 
-- **添加 TOTP**：点击扩展图标 →「管理 TOTP 条目」，或右键扩展图标 →「选项」。输入名称与 Secret（Base32），可选填写域名匹配（如 `*.github.com`）。
-- **一键导入 Google Authenticator**：
-  1. 在手机 Google Authenticator 中点击左上角菜单 →「转移账号」→「导出账号」；
-  2. 勾选要导出的账号，显示二维码后，截图保存并发送到电脑端；
-  3. 打开扩展「选项」页，在「一键导入 Google Authenticator」中上传二维码图片；
-  4. 导入完成后会显示新增/跳过数量；重复导入同一批账号会自动去重。
-- **填充方式一**：在需要输入验证码的页面，点击扩展图标，在弹层中点击某条目的「填充」或「填充当前页面」。
-- **填充方式二**：页面出现 OTP 输入框时，输入框旁会显示「用 Authenticator 填充」按钮，点击即可填充（多条匹配时会弹出列表选择）。
-- **右键菜单**：在输入框中右键 →「用 Authenticator 填充 TOTP」。
-- **复制验证码**：在弹层中点击某条目的 6 位验证码可复制到剪贴板。
+## Install
 
-## 导入说明与限制
+1. Clone or download this repository: `git clone https://github.com/zxyle/authenticator.git`
+2. In Chrome, open `chrome://extensions/`
+3. Turn on **Developer mode** (top right)
+4. Click **Load unpacked** and select the `chrome-extension` folder in this repo
+5. Pin **Authenticator** to the toolbar and click the icon to fill codes when needed.
 
-- **不支持无导出直接读取**：Google Authenticator 不提供直接读取已存秘钥的公开接口，需先在手机端执行「导出账号」。
-- **二维码识别失败处理**：请确保图片清晰、无反光、二维码完整；建议重新拍照后重试。
-- **HOTP 条目处理**：当前导入仅保留 TOTP 条目，HOTP 会在预览/导入统计中标记为跳过。
-- **撤销说明**：可撤销当前页面会话中的最近一次导入，用于快速回滚误导入。
+## Usage
 
-## 安全提示
+- **Add TOTP entries**: Click the extension icon → **Manage TOTP entries**, or right‑click the icon → **Options**. Enter a label and Secret (Base32); optionally add a domain pattern (e.g. `*.github.com`).
+- **Import from Google Authenticator**:
+  1. On your phone: Google Authenticator → menu → **Transfer accounts** → **Export accounts**
+  2. Select accounts, show the QR code, capture a clear screenshot and transfer it to your computer
+  3. In the extension **Options** page, use **Import Google Authenticator** and upload the QR image
+  4. After import you’ll see counts for added vs skipped entries; importing the same batch again deduplicates automatically
+- **Fill method A**: On a page that needs a code, open the popup and use **Fill** on an entry or **Fill current page**
+- **Fill method B**: When an OTP field is detected, a **Fill with Authenticator** button may appear next to it; if several entries match, you’ll get a chooser
+- **Context menu**: Right‑click in an input → **Fill TOTP with Authenticator**
+- **Copy code**: In the popup, click the 6‑digit code to copy it to the clipboard
 
-- 导出的二维码图片等同于 2FA 秘钥明文，请勿外传。
-- 导入完成后建议立即删除拍摄图片或临时文件。
-- 若设备可能被他人使用，建议同时启用系统级磁盘加密和浏览器账户保护。
+## Import notes and limitations
 
-## 手工验收清单
+- **No silent read of Google Authenticator**: There is no public API to read existing secrets; you must use **Export accounts** on the phone first
+- **QR decode failures**: Use a sharp, glare‑free, uncropped image; retry with a new photo if needed
+- **HOTP**: Only TOTP entries are imported; HOTP entries are reported as skipped in preview/stats
+- **Undo**: You can undo the most recent import in the current options session to quickly roll back mistakes
 
-- 使用真实 `otpauth-migration` 二维码图片执行一次导入，确认出现“新增 N 条”提示。
-- 立即重复导入同一图片，确认提示“重复跳过”，且列表无重复条目。
-- 在扩展弹层查看新条目验证码是否正常刷新（30 秒窗口倒计时）。
-- 打开任意 2FA 输入页面，验证「填充」与右键菜单填充可用。
-- 点击「撤销上次导入」，确认本次导入条目被移除且历史手工条目不受影响。
+## Security
 
-## 数据与同步
+- Exported QR images are effectively plaintext for your 2FA secrets — do not share them
+- Delete screenshots or temporary files after successful import
+- On shared devices, use full‑disk encryption and lock your OS/browser account
 
-- TOTP 条目保存在浏览器本地（`chrome.storage.local`）。
-- 选项页提供「同步设置（预留）」：可保存 API 端点与 Token，后续可对接后端拉取 TOTP 列表。
+## Manual QA checklist
+
+- Import a real `otpauth-migration` QR image once and confirm “added N entries”
+- Import the same image again and confirm “skipped duplicates” with no duplicate rows
+- In the popup, confirm codes refresh on the 30‑second window
+- On a 2FA page, confirm **Fill** and the context menu both work
+- Use **Undo last import** and confirm only that import batch is removed; manually added entries stay
+
+## Data and sync
+
+- TOTP entries are stored locally in the browser (`chrome.storage.local`)
+- **Sync settings (planned)** on the options page can store an API URL and token for a future backend that supplies TOTP entries

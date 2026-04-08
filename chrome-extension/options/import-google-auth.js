@@ -1,4 +1,10 @@
 (function () {
+  function i18nError(key, subs) {
+    const e = new Error(key);
+    if (subs && subs.length) e.i18nSubs = subs;
+    return e;
+  }
+
   const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
   function toBase32(bytes) {
@@ -41,23 +47,23 @@
       value |= (b & 0x7f) << shift;
       if ((b & 0x80) === 0) return { value, next: index };
       shift += 7;
-      if (shift > 35) throw new Error('VARINT 过长，无法解析');
+      if (shift > 35) throw i18nError('importErrorVarintTooLong');
     }
-    throw new Error('VARINT 提前结束');
+    throw i18nError('importErrorVarintPrematureEnd');
   }
 
   function readLengthDelimited(bytes, start) {
     const lenInfo = readVarint(bytes, start);
     const begin = lenInfo.next;
     const end = begin + lenInfo.value;
-    if (end > bytes.length) throw new Error('Length-delimited 字段越界');
+    if (end > bytes.length) throw i18nError('importErrorLengthDelimitedOutOfBounds');
     return { value: bytes.slice(begin, end), next: end };
   }
 
   function skipField(bytes, wireType, start) {
     if (wireType === 0) return readVarint(bytes, start).next;
     if (wireType === 2) return readLengthDelimited(bytes, start).next;
-    throw new Error('不支持的 protobuf wire type: ' + wireType);
+    throw i18nError('importErrorUnsupportedWireType', [String(wireType)]);
   }
 
   function parseOtpParameters(bytes) {
@@ -172,12 +178,12 @@
     return payload;
   }
 
-  /** 展示名称：issuer 与 protobuf name 拼接（与 Google 导出字段一致） */
+  /** Display name: issuer + protobuf name (matches Google export fields) */
   function formatImportDisplayLabel(issuer, name) {
     const i = (issuer || '').trim();
     const n = (name || '').trim();
     if (i && n) return i + ':' + n;
-    return i || n || '未命名';
+    return i || n || '';
   }
 
   function toEntry(otp, nowMs) {
@@ -200,18 +206,18 @@
   }
 
   function decodeFromMigrationUri(uriText) {
-    if (!uriText || typeof uriText !== 'string') throw new Error('二维码内容为空');
+    if (!uriText || typeof uriText !== 'string') throw i18nError('importErrorQrEmpty');
     const trimmed = uriText.trim();
     if (!trimmed.startsWith('otpauth-migration://offline?')) {
-      throw new Error('二维码不是 Google Authenticator 导出链接');
+      throw i18nError('importErrorNotMigrationUri');
     }
     const url = new URL(trimmed);
     const data = url.searchParams.get('data');
-    if (!data) throw new Error('未找到 migration data 参数');
+    if (!data) throw i18nError('importErrorMigrationDataMissing');
     const payload = parseMigrationPayload(base64ToBytes(data));
     const nowMs = Date.now();
     const entries = payload.otpParameters.map((otp) => toEntry(otp, nowMs)).filter(Boolean);
-    if (!entries.length) throw new Error('未解析到可用 TOTP 条目');
+    if (!entries.length) throw i18nError('importErrorNoEntriesParsed');
     return {
       entries,
       meta: {
@@ -228,19 +234,19 @@
   }
 
   async function decodeQrFromImageBlob(blob) {
-    if (!blob) throw new Error('图片数据为空');
+    if (!blob) throw i18nError('importErrorImageEmpty');
     if (typeof BarcodeDetector === 'undefined') {
-      throw new Error('当前浏览器不支持 BarcodeDetector，建议升级 Chrome 后重试');
+      throw i18nError('importErrorBarcodeDetectorUnsupported');
     }
     const detector = new BarcodeDetector({ formats: ['qr_code'] });
     const bitmap = await createImageBitmap(blob);
     try {
       const barcodes = await detector.detect(bitmap);
       if (!barcodes || !barcodes.length) {
-        throw new Error('未识别到二维码，请更换更清晰的图片');
+        throw i18nError('importErrorQrNotDetected');
       }
       const rawValue = barcodes[0].rawValue || '';
-      if (!rawValue.trim()) throw new Error('二维码内容为空');
+      if (!rawValue.trim()) throw i18nError('importErrorQrEmpty');
       return rawValue;
     } finally {
       bitmap.close();
@@ -248,19 +254,19 @@
   }
 
   async function readQrTextFromFile(file) {
-    if (!file) throw new Error('请先选择二维码图片');
+    if (!file) throw i18nError('importErrorSelectQrImage');
     return decodeQrFromImageBlob(file);
   }
 
   function parseOtpauthTotpUri(uri) {
     const trimmed = uri.trim();
     const match = trimmed.match(/^otpauth:\/\/totp\/([^?]*)\?(.*)$/i);
-    if (!match) throw new Error('无效的 otpauth TOTP 链接');
+    if (!match) throw i18nError('importErrorInvalidTotpUri');
     const labelEncoded = match[1];
     const qs = match[2];
     const params = new URLSearchParams(qs);
     const secret = normalizeSecret(params.get('secret') || '');
-    if (!secret) throw new Error('二维码缺少 secret');
+    if (!secret) throw i18nError('importErrorMissingSecret');
     const issuer = (params.get('issuer') || '').trim();
     let label = '';
     try {
@@ -268,11 +274,11 @@
     } catch {
       label = labelEncoded;
     }
-    if (!label) label = issuer || '未命名';
+    if (!label) label = issuer || '';
     const entryId = 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
     return {
       id: entryId,
-      label,
+      label: label || undefined,
       issuer: issuer || undefined,
       secret,
       source: 'qr-add',
@@ -280,15 +286,15 @@
   }
 
   /**
-   * 将二维码文本转为可写入 storage 的条目列表（TOTP；迁移类会过滤 HOTP）
+   * Convert QR text to entries for storage (TOTP; migration payloads filter HOTP)
    */
   function entriesFromQrPayload(rawValue) {
     const trimmed = (rawValue || '').trim();
-    if (!trimmed) throw new Error('二维码内容为空');
+    if (!trimmed) throw i18nError('importErrorQrEmpty');
     if (trimmed.startsWith('otpauth-migration://offline?')) {
       const decoded = decodeFromMigrationUri(trimmed);
       const totpEntries = decoded.entries.filter((e) => (e.importMeta?.type || 2) !== 1);
-      if (!totpEntries.length) throw new Error('二维码中没有可导入的 TOTP 条目');
+      if (!totpEntries.length) throw i18nError('importErrorNoTotpInPayload');
       return totpEntries.map((entry) => ({
         ...entry,
         secret: normalizeSecret(entry.secret),
@@ -298,9 +304,9 @@
       return [parseOtpauthTotpUri(trimmed)];
     }
     if (/^otpauth:\/\/hotp\//i.test(trimmed)) {
-      throw new Error('暂不支持 HOTP，请使用 TOTP 二维码');
+      throw i18nError('importErrorHotpNotSupported');
     }
-    throw new Error('无法识别二维码（需 otpauth TOTP 或 Google Authenticator 导出）');
+    throw i18nError('importErrorUnrecognizedQr');
   }
 
   async function decodeFromImageFile(file) {
@@ -313,5 +319,6 @@
     decodeFromMigrationUri,
     decodeQrFromImageBlob,
     entriesFromQrPayload,
+    i18nError,
   };
 })();

@@ -1,7 +1,13 @@
 /**
- * Content script：检测 OTP 输入框、接收 Popup 的填充消息并写入
+ * Content script: detect OTP inputs, handle fill messages from popup / context menu
  */
 (function () {
+  const t = chrome.i18n.getMessage.bind(chrome.i18n);
+
+  function displayLabel(entry) {
+    return entry.label || entry.issuer || t('unnamed');
+  }
+
   const STORAGE_KEYS = { TOTP_ENTRIES: 'totpEntries' };
 
   function getOtpInputs() {
@@ -51,7 +57,6 @@
     const withPattern = entries.filter((e) => (e.domainPattern || '').trim());
     const withoutPattern = entries.filter((e) => !(e.domainPattern || '').trim());
     const matched = withPattern.filter((e) => domainMatches((e.domainPattern || '').trim(), host));
-    // 规则：优先使用明确配置了域名且匹配的条目；没有命中时再回退到未配置域名的通用条目。
     if (matched.length) return matched;
     return withoutPattern;
   }
@@ -74,7 +79,7 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'totp-autofill-btn';
-        btn.textContent = forHost.length ? '用 Authenticator 填充' : '添加 TOTP 后填充';
+        btn.textContent = forHost.length ? t('contentFillWithAuthenticator') : t('contentAddTotpToFill');
         btn.style.cssText =
           'font-size:12px;padding:2px 8px;border:1px solid #1a73e8;border-radius:4px;background:#1a73e8;color:#fff;cursor:pointer;';
         btn.onmouseover = () => (btn.style.background = '#1765cc');
@@ -89,7 +94,7 @@
             const list = d[STORAGE_KEYS.TOTP_ENTRIES] || [];
             const forHostAgain = getEntriesForHost(list, host);
             if (!forHostAgain.length) {
-              alert('请先在扩展选项中添加该站点的 TOTP 条目。');
+              alert(t('contentAlertAddTotpFirst'));
               return;
             }
             if (forHostAgain.length === 1) {
@@ -103,7 +108,7 @@
             forHostAgain.forEach((entry) => {
               const opt = document.createElement('div');
               opt.style.cssText = 'padding:6px 12px;cursor:pointer;font-size:13px;';
-              opt.textContent = entry.label || entry.issuer || '未命名';
+              opt.textContent = displayLabel(entry);
               opt.onmouseover = () => (opt.style.background = '#f1f3f4');
               opt.onmouseout = () => (opt.style.background = '');
               opt.onclick = () => {

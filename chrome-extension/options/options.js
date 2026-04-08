@@ -1,4 +1,24 @@
 (function () {
+  document.documentElement.lang = chrome.i18n.getUILanguage();
+  document.title = chrome.i18n.getMessage('optionsPageTitle');
+  applyI18nAttributes();
+
+  const t = chrome.i18n.getMessage.bind(chrome.i18n);
+
+  function displayLabel(entry) {
+    return entry.label || entry.issuer || t('unnamed');
+  }
+
+  function formatCaughtError(err) {
+    if (!err || !err.message) return t('importErrorUnknown');
+    const key = err.message;
+    const subs = err.i18nSubs;
+    let msg =
+      subs && subs.length ? chrome.i18n.getMessage(key, subs) : chrome.i18n.getMessage(key);
+    if (msg) return msg;
+    return t('importErrorUnknown');
+  }
+
   const STORAGE_KEYS = {
     TOTP_ENTRIES: 'totpEntries',
   };
@@ -86,7 +106,7 @@
     }
     paginationEl.hidden = false;
     const tp = totalPages(entriesLength);
-    pageInfoEl.textContent = '第 ' + currentPage + ' / ' + tp + ' 页，共 ' + entriesLength + ' 条';
+    pageInfoEl.textContent = t('optionsPageInfo', [String(currentPage), String(tp), String(entriesLength)]);
     pagePrevEl.disabled = currentPage <= 1;
     pageNextEl.disabled = currentPage >= tp;
   }
@@ -115,11 +135,11 @@
 
       const tdName = document.createElement('td');
       tdName.className = 'cell-name';
-      tdName.textContent = entry.label || entry.issuer || '未命名';
+      tdName.textContent = displayLabel(entry);
 
       const tdDomain = document.createElement('td');
       tdDomain.className = 'cell-domain' + (entry.domainPattern ? '' : ' is-empty');
-      tdDomain.textContent = entry.domainPattern || '—';
+      tdDomain.textContent = entry.domainPattern || t('optionsDomainEmpty');
 
       const tdActions = document.createElement('td');
       const actions = document.createElement('div');
@@ -127,16 +147,16 @@
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
       editBtn.className = 'btn-icon edit';
-      editBtn.setAttribute('aria-label', '编辑');
-      editBtn.title = '编辑';
+      editBtn.setAttribute('aria-label', t('ariaEdit'));
+      editBtn.title = t('ariaEdit');
       editBtn.innerHTML =
         '<svg class="btn-icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"/></svg>';
 
       const delBtn = document.createElement('button');
       delBtn.type = 'button';
       delBtn.className = 'btn-icon delete';
-      delBtn.setAttribute('aria-label', '删除');
-      delBtn.title = '删除';
+      delBtn.setAttribute('aria-label', t('ariaDelete'));
+      delBtn.title = t('ariaDelete');
       delBtn.innerHTML =
         '<svg class="btn-icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
       actions.appendChild(editBtn);
@@ -145,8 +165,8 @@
 
       editBtn.addEventListener('click', () => openEditDialog(entry));
       delBtn.addEventListener('click', () => {
-        const displayName = entry.label || entry.issuer || '未命名';
-        if (!window.confirm('确定要删除「' + displayName + '」吗？此操作无法撤销。')) {
+        const displayName = displayLabel(entry);
+        if (!window.confirm(t('confirmDeleteEntry', displayName))) {
           return;
         }
         loadEntries().then((list) => {
@@ -210,35 +230,43 @@
       importPreviewEl.innerHTML = '';
       return;
     }
-    const sample = preview.entries.slice(0, 6);
-    const sampleHtml = sample
-      .map(
-        (entry) =>
-          '<li>' + (entry.label || entry.issuer || '未命名') + ' <span class="meta">(' + entry.secret.slice(0, 4) + '...)</span></li>'
-      )
-      .join('');
-    importPreviewEl.innerHTML =
-      '<div>待导入 <strong>' +
-      preview.entries.length +
-      '</strong> 条；其中 <strong>' +
-      preview.totpCount +
-      '</strong> 条为 TOTP，<strong>' +
-      preview.hotpCount +
-      '</strong> 条为 HOTP（将跳过）。</div>' +
-      '<ul>' +
-      sampleHtml +
-      '</ul>' +
-      (preview.entries.length > 6 ? '<div class="meta">仅展示前 6 条...</div>' : '');
+    importPreviewEl.innerHTML = '';
+    const summary = document.createElement('div');
+    summary.innerHTML = t('importPreviewSummary', [
+      String(preview.entries.length),
+      String(preview.totpCount),
+      String(preview.hotpCount),
+    ]);
+    importPreviewEl.appendChild(summary);
+    const ul = document.createElement('ul');
+    preview.entries.slice(0, 6).forEach((entry) => {
+      const li = document.createElement('li');
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = displayLabel(entry);
+      const metaSpan = document.createElement('span');
+      metaSpan.className = 'meta';
+      metaSpan.textContent = ' (' + entry.secret.slice(0, 4) + '...)';
+      li.appendChild(nameSpan);
+      li.appendChild(metaSpan);
+      ul.appendChild(li);
+    });
+    importPreviewEl.appendChild(ul);
+    if (preview.entries.length > 6) {
+      const more = document.createElement('div');
+      more.className = 'meta';
+      more.textContent = t('importPreviewShowingFirstSix');
+      importPreviewEl.appendChild(more);
+    }
     importPreviewEl.classList.add('visible');
   }
 
   async function buildImportPreview() {
     const file = migrationImageEl.files && migrationImageEl.files[0];
-    if (!file) throw new Error('请先选择二维码图片');
+    if (!file) throw window.GoogleAuthImport.i18nError('importErrorSelectQrImage');
     const decoded = await window.GoogleAuthImport.decodeFromImageFile(file);
     const totpEntries = decoded.entries.filter((e) => (e.importMeta?.type || 2) !== 1);
     const hotpCount = decoded.entries.length - totpEntries.length;
-    if (!totpEntries.length) throw new Error('二维码中没有可导入的 TOTP 条目');
+    if (!totpEntries.length) throw window.GoogleAuthImport.i18nError('importErrorNoTotpInPayload');
     const entries = totpEntries.map((entry) => ({
       ...entry,
       secret: normalizeSecret(entry.secret),
@@ -295,7 +323,7 @@
     const secret = secretEl.value.trim().replace(/\s/g, '');
     const domainPattern = domainPatternEl.value.trim() || undefined;
     if (!secret) {
-      alert('请填写 Secret');
+      alert(t('alertFillSecret'));
       return;
     }
     loadEntries().then((entries) => {
@@ -358,15 +386,15 @@
   qrAddSubmitBtn.addEventListener('click', async () => {
     const file = qrAddImageEl.files && qrAddImageEl.files[0];
     if (!file) {
-      setQrAddStatus('请先选择二维码图片', 'error');
+      setQrAddStatus(t('importErrorSelectQrImage'), 'error');
       return;
     }
-    setQrAddStatus('正在识别…', '');
+    setQrAddStatus(t('qrAddSelecting'), '');
     try {
       const raw = await window.GoogleAuthImport.decodeQrFromImageBlob(file);
       const entries = window.GoogleAuthImport.entriesFromQrPayload(raw);
       if (entries.length > 1) {
-        setQrAddStatus('该二维码包含多个账号，请使用工具栏「导入」批量添加', 'error');
+        setQrAddStatus(t('qrAddMultiAccountError'), 'error');
         return;
       }
       const domainPattern = qrAddDomainPatternEl.value.trim() || undefined;
@@ -374,7 +402,7 @@
       const list = await loadEntries();
       const key = buildDedupKey(entry);
       if (list.some((e) => buildDedupKey(e) === key)) {
-        setQrAddStatus('该密钥已存在，未添加重复条目', 'error');
+        setQrAddStatus(t('qrAddDuplicateError'), 'error');
         return;
       }
       list.push(entry);
@@ -383,7 +411,7 @@
       renderTable(list);
       qrAddDialog.close();
     } catch (err) {
-      setQrAddStatus(err && err.message ? err.message : '识别失败', 'error');
+      setQrAddStatus(formatCaughtError(err), 'error');
     }
   });
 
@@ -394,17 +422,17 @@
 
   previewImportBtn.addEventListener('click', async () => {
     try {
-      setImportStatus('正在解析二维码...', '');
+      setImportStatus(t('importParsing'), '');
       pendingPreview = await buildImportPreview();
       renderPreview(pendingPreview);
       setImportStatus(
-        '解析成功：可导入 ' + pendingPreview.entries.length + ' 条（HOTP 跳过 ' + pendingPreview.hotpCount + ' 条）',
+        t('importParseSuccess', [String(pendingPreview.entries.length), String(pendingPreview.hotpCount)]),
         'success'
       );
     } catch (err) {
       pendingPreview = null;
       renderPreview(null);
-      setImportStatus(err && err.message ? err.message : '解析失败', 'error');
+      setImportStatus(formatCaughtError(err), 'error');
     }
   });
 
@@ -413,20 +441,20 @@
       if (!pendingPreview) pendingPreview = await buildImportPreview();
       const result = await applyImport(pendingPreview);
       setImportStatus(
-        '导入完成：新增 ' + result.imported + ' 条，重复跳过 ' + result.skipped + ' 条，共处理 ' + result.total + ' 条',
+        t('importComplete', [String(result.imported), String(result.skipped), String(result.total)]),
         'success'
       );
       pendingPreview = null;
       renderPreview(null);
     } catch (err) {
-      setImportStatus(err && err.message ? err.message : '导入失败', 'error');
+      setImportStatus(formatCaughtError(err), 'error');
     }
   });
 
   rollbackImportBtn.addEventListener('click', async () => {
     try {
       if (!lastImportedIds.length) {
-        setImportStatus('没有可撤销的导入记录（仅支持本次页面会话中的最近一次导入）', 'error');
+        setImportStatus(t('importRollbackNothing'), 'error');
         return;
       }
       const entries = await loadEntries();
@@ -435,10 +463,10 @@
       await saveEntries(next);
       clampPage(next.length);
       renderTable(next);
-      setImportStatus('已撤销最近一次导入，共移除 ' + (entries.length - next.length) + ' 条', 'success');
+      setImportStatus(t('importRollbackDone', String(entries.length - next.length)), 'success');
       lastImportedIds = [];
     } catch (err) {
-      setImportStatus(err && err.message ? err.message : '撤销失败', 'error');
+      setImportStatus(formatCaughtError(err), 'error');
     }
   });
 

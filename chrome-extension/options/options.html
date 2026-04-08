@@ -1,111 +1,112 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Authenticator - 选项</title>
+  <title>Authenticator</title>
   <link rel="stylesheet" href="options.css" />
 </head>
 <body>
   <div class="page">
-    <h1>TOTP 管理</h1>
+    <h1 data-i18n="optionsHeadingTotpManage"></h1>
     <section class="section table-section">
       <div class="section-head">
-        <h2>已保存的 TOTP</h2>
+        <h2 data-i18n="optionsSectionSavedTotp"></h2>
         <div class="toolbar">
-          <button id="openAddDialogBtn" type="button" class="btn btn-primary">添加</button>
-          <button id="openQrAddDialogBtn" type="button" class="btn">二维码添加</button>
-          <button id="openImportDialogBtn" type="button" class="btn">导入</button>
+          <button id="openAddDialogBtn" type="button" class="btn btn-primary" data-i18n="optionsBtnAdd"></button>
+          <button id="openQrAddDialogBtn" type="button" class="btn" data-i18n="optionsBtnQrAdd"></button>
+          <button id="openImportDialogBtn" type="button" class="btn" data-i18n="optionsBtnImport"></button>
         </div>
       </div>
       <div class="table-wrap">
         <table class="data-table">
           <thead>
             <tr>
-              <th class="col-index">#</th>
-              <th class="col-name">名称</th>
-              <th class="col-domain">域名匹配</th>
-              <th class="col-actions">操作</th>
+              <th class="col-index" data-i18n="optionsTableColIndex"></th>
+              <th class="col-name" data-i18n="optionsTableColName"></th>
+              <th class="col-domain" data-i18n="optionsTableColDomain"></th>
+              <th class="col-actions" data-i18n="optionsTableColActions"></th>
             </tr>
           </thead>
           <tbody id="tableBody"></tbody>
         </table>
       </div>
-      <div id="emptyHint" class="empty-hint" hidden>暂无条目，请点击「添加」「二维码添加」或「导入」。</div>
+      <div id="emptyHint" class="empty-hint" hidden data-i18n="optionsEmptyHint"></div>
       <div id="pagination" class="pagination" hidden>
-        <button id="pagePrev" type="button" class="btn btn-page">上一页</button>
+        <button id="pagePrev" type="button" class="btn btn-page" data-i18n="optionsPaginationPrev"></button>
         <span id="pageInfo" class="page-info"></span>
-        <button id="pageNext" type="button" class="btn btn-page">下一页</button>
+        <button id="pageNext" type="button" class="btn btn-page" data-i18n="optionsPaginationNext"></button>
       </div>
     </section>
   </div>
 
   <dialog id="addDialog" class="modal modal-add">
     <form class="modal-inner" id="addForm">
-      <h3 class="modal-title">添加条目</h3>
+      <h3 class="modal-title" data-i18n="addDialogTitle"></h3>
       <div class="form">
-        <label>名称 <input id="label" type="text" placeholder="例如：GitHub" /></label>
-        <label>Secret (Base32) <input id="secret" type="text" placeholder="JBSWY3DPEHPK3PXP" /></label>
-        <label>域名匹配（可选） <input id="domainPattern" type="text" placeholder="*.github.com 或留空" /></label>
+        <label><span data-i18n="labelName"></span> <input id="label" type="text" data-i18n-placeholder="placeholderLabelExample" /></label>
+        <label><span data-i18n="labelSecretBase32"></span> <input id="secret" type="text" data-i18n-placeholder="placeholderSecretExample" /></label>
+        <label><span data-i18n="labelDomainPatternOptional"></span> <input id="domainPattern" type="text" data-i18n-placeholder="placeholderDomainPattern" /></label>
       </div>
       <div class="modal-actions">
-        <button type="button" id="addCancelBtn" class="btn">取消</button>
-        <button type="submit" id="addSubmitBtn" class="btn btn-primary">确定添加</button>
+        <button type="button" id="addCancelBtn" class="btn" data-i18n="btnCancel"></button>
+        <button type="submit" id="addSubmitBtn" class="btn btn-primary" data-i18n="btnConfirmAdd"></button>
       </div>
     </form>
   </dialog>
 
   <dialog id="editDialog" class="modal modal-add">
     <div class="modal-inner">
-      <h3 class="modal-title">编辑条目</h3>
+      <h3 class="modal-title" data-i18n="editDialogTitle"></h3>
       <div class="form">
-        <label>名称 <input id="editLabel" type="text" placeholder="显示名称" /></label>
-        <label>域名匹配（可选） <input id="editDomainPattern" type="text" placeholder="可选，如 *.github.com" /></label>
-        <label>Secret（只读） <input id="editSecret" type="text" class="secret-readonly" readonly /></label>
+        <label><span data-i18n="labelName"></span> <input id="editLabel" type="text" data-i18n-placeholder="placeholderDisplayName" /></label>
+        <label><span data-i18n="labelDomainPatternOptional"></span> <input id="editDomainPattern" type="text" data-i18n-placeholder="placeholderDomainOptional" /></label>
+        <label><span data-i18n="labelSecretReadonly"></span> <input id="editSecret" type="text" class="secret-readonly" readonly /></label>
       </div>
       <div class="modal-actions">
-        <button type="button" id="editCancelBtn" class="btn">取消</button>
-        <button type="button" id="editSaveBtn" class="btn btn-primary">保存</button>
+        <button type="button" id="editCancelBtn" class="btn" data-i18n="btnCancel"></button>
+        <button type="button" id="editSaveBtn" class="btn btn-primary" data-i18n="btnSave"></button>
       </div>
     </div>
   </dialog>
 
   <dialog id="qrAddDialog" class="modal modal-add">
     <div class="modal-inner">
-      <h3 class="modal-title">从二维码添加</h3>
-      <p class="hint">支持常见单账号 TOTP（<code>otpauth://totp/…</code>）。若为 Google Authenticator <strong>批量导出</strong>二维码，请使用「导入」。</p>
+      <h3 class="modal-title" data-i18n="qrAddDialogTitle"></h3>
+      <p class="hint" data-i18n-html="qrAddHintHtml"></p>
       <div class="form">
-        <label>二维码图片 <input id="qrAddImage" type="file" accept="image/*" /></label>
-        <label>域名匹配（可选） <input id="qrAddDomainPattern" type="text" placeholder="*.github.com 或留空" /></label>
+        <label><span data-i18n="labelQrImage"></span> <input id="qrAddImage" type="file" accept="image/*" /></label>
+        <label><span data-i18n="labelDomainPatternOptional"></span> <input id="qrAddDomainPattern" type="text" data-i18n-placeholder="placeholderDomainPattern" /></label>
         <div id="qrAddStatus" class="import-status" role="status"></div>
       </div>
       <div class="modal-actions">
-        <button type="button" id="qrAddCancelBtn" class="btn">取消</button>
-        <button type="button" id="qrAddSubmitBtn" class="btn btn-primary">识别并添加</button>
+        <button type="button" id="qrAddCancelBtn" class="btn" data-i18n="btnCancel"></button>
+        <button type="button" id="qrAddSubmitBtn" class="btn btn-primary" data-i18n="qrAddSubmit"></button>
       </div>
     </div>
   </dialog>
 
   <dialog id="importDialog" class="modal modal-wide">
     <div class="modal-inner">
-      <h3 class="modal-title">一键导入 Google Authenticator</h3>
-      <p class="hint">在手机 Google Authenticator 中导出账号后，用另一设备拍照二维码并在这里上传。</p>
+      <h3 class="modal-title" data-i18n="importDialogTitle"></h3>
+      <p class="hint" data-i18n="importHint"></p>
       <div class="form">
-        <label>二维码图片 <input id="migrationImage" type="file" accept="image/*" /></label>
+        <label><span data-i18n="labelQrImage"></span> <input id="migrationImage" type="file" accept="image/*" /></label>
         <div class="import-actions">
-          <button id="previewImportBtn" type="button" class="btn">预览导入</button>
-          <button id="runImportBtn" type="button" class="btn btn-primary">确认导入</button>
-          <button id="rollbackImportBtn" type="button" class="btn">撤销上次导入</button>
+          <button id="previewImportBtn" type="button" class="btn" data-i18n="previewImport"></button>
+          <button id="runImportBtn" type="button" class="btn btn-primary" data-i18n="confirmImport"></button>
+          <button id="rollbackImportBtn" type="button" class="btn" data-i18n="rollbackLastImport"></button>
         </div>
         <div id="importStatus" class="import-status"></div>
       </div>
       <div id="importPreview" class="import-preview"></div>
       <div class="modal-actions modal-actions-footer">
-        <button type="button" id="importCloseBtn" class="btn">关闭</button>
+        <button type="button" id="importCloseBtn" class="btn" data-i18n="btnClose"></button>
       </div>
     </div>
   </dialog>
 
   <script src="import-google-auth.js"></script>
+  <script src="../lib/i18n-dom.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

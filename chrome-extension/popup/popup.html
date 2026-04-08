@@ -6,13 +6,14 @@
 </head>
 <body>
   <div class="popup">
-    <h1 class="title">Authenticator</h1>
+    <h1 class="title" data-i18n="popupTitle"></h1>
     <div id="entries" class="entries"></div>
     <div class="actions">
-      <button id="fillCurrent" type="button" class="btn btn-primary">填充当前页面</button>
-      <a id="openOptions" href="#" class="link">管理 TOTP 条目</a>
+      <button id="fillCurrent" type="button" class="btn btn-primary" data-i18n="fillCurrentPage"></button>
+      <a id="openOptions" href="#" class="link" data-i18n="manageTotpEntries"></a>
     </div>
   </div>
+  <script src="../lib/i18n-dom.js"></script>
   <script src="../lib/totp.js"></script>
   <script src="popup.js"></script>
 </body>

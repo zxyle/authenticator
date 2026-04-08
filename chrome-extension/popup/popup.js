@@ -1,4 +1,13 @@
 (function () {
+  document.documentElement.lang = chrome.i18n.getUILanguage();
+  applyI18nAttributes();
+
+  const t = chrome.i18n.getMessage.bind(chrome.i18n);
+
+  function displayLabel(entry) {
+    return entry.label || entry.issuer || t('unnamed');
+  }
+
   const entriesEl = document.getElementById('entries');
   const fillCurrentBtn = document.getElementById('fillCurrent');
   const openOptionsEl = document.getElementById('openOptions');
@@ -18,7 +27,7 @@
 
   function renderEntries(entries) {
     if (!entries.length) {
-      entriesEl.innerHTML = '<div class="empty">暂无 TOTP 条目，请先在选项中添加</div>';
+      entriesEl.innerHTML = '<div class="empty">' + t('popupEmpty') + '</div>';
       fillCurrentBtn.disabled = true;
       return;
     }
@@ -32,10 +41,10 @@
       left.className = 'entry-left';
       const label = document.createElement('div');
       label.className = 'entry-label';
-      label.textContent = entry.label || entry.issuer || '未命名';
+      label.textContent = displayLabel(entry);
       const codeEl = document.createElement('div');
       codeEl.className = 'entry-code';
-      codeEl.title = '点击复制';
+      codeEl.title = t('clickToCopy');
       const meta = document.createElement('div');
       meta.className = 'entry-meta';
       left.appendChild(label);
@@ -44,8 +53,8 @@
       const fillBtn = document.createElement('button');
       fillBtn.type = 'button';
       fillBtn.className = 'btn-fill';
-      fillBtn.textContent = '填充';
-      fillBtn.title = '填充到当前页面 OTP 输入框';
+      fillBtn.textContent = t('fill');
+      fillBtn.title = t('fillOtpTooltip');
       div.appendChild(left);
       div.appendChild(fillBtn);
       entriesEl.appendChild(div);
@@ -54,11 +63,11 @@
         TOTP.getToken(entry.secret)
           .then((token) => {
             codeEl.textContent = token;
-            meta.textContent = TOTP.getRemainingSeconds() + 's 后更新';
+            meta.textContent = t('secondsUntilRefresh', String(TOTP.getRemainingSeconds()));
           })
           .catch(() => {
             codeEl.textContent = '---';
-            meta.textContent = '密钥无效';
+            meta.textContent = t('invalidSecret');
           });
       }
       updateCode();
@@ -66,7 +75,7 @@
       codeEl.addEventListener('click', () => {
         TOTP.getToken(entry.secret).then((token) => {
           navigator.clipboard.writeText(token);
-          codeEl.textContent = '已复制';
+          codeEl.textContent = t('copied');
           setTimeout(updateCode, 800);
         });
       });

@@ -1,11 +1,13 @@
 /**
- * Service Worker：预留消息转发、右键菜单等
+ * Service worker: context menu, message forwarding (reserved)
  */
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: 'fillOtp',
-    title: '用 Authenticator 填充 TOTP',
-    contexts: ['editable'],
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: 'fillOtp',
+      title: chrome.i18n.getMessage('contextMenuFillTotp'),
+      contexts: ['editable'],
+    });
   });
 });
 
