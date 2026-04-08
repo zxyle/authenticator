@@ -1,6 +1,6 @@
 /**
- * TOTP 生成（纯 JS，依赖 crypto.subtle，适用于 Chrome 扩展）
- * 基于 RFC 6238，30 秒窗口，6 位数字
+ * TOTP generation (pure JS, uses crypto.subtle; suitable for Chrome extensions).
+ * RFC 6238, 30-second step, 6-digit codes.
  */
 const TOTP = (function () {
   const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -28,8 +28,8 @@ const TOTP = (function () {
   }
 
   /**
-   * 生成当前 TOTP 码（6 位数字字符串）
-   * @param {string} secret - Base32 编码的密钥
+   * Compute the current TOTP (six-digit string).
+   * @param {string} secret - Base32-encoded shared secret
    * @returns {Promise<string>}
    */
   async function getToken(secret) {
@@ -59,7 +59,7 @@ const TOTP = (function () {
   }
 
   /**
-   * 当前 30 秒窗口剩余秒数（1–30）
+   * Seconds remaining in the current 30-second window (1–30).
    * @returns {number}
    */
   function getRemainingSeconds() {
@@ -70,11 +70,11 @@ const TOTP = (function () {
   return { getToken, getRemainingSeconds };
 })();
 
-// 兼容在 popup/options 中通过 script 引入（挂到 window）
+// Expose on window when loaded via <script> in popup/options.
 if (typeof window !== 'undefined') {
   window.TOTP = TOTP;
 }
-// Service Worker / content 中通过 importScripts 时挂到 self
+// Expose on self when loaded via importScripts in service worker / content script.
 if (typeof self !== 'undefined' && typeof self.TOTP === 'undefined') {
   self.TOTP = TOTP;
 }
