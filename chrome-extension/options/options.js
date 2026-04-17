@@ -66,6 +66,12 @@
   const importStatusEl = document.getElementById('importStatus');
   const importPreviewEl = document.getElementById('importPreview');
 
+  const isWindows = navigator.userAgent.includes('Windows');
+  if (isWindows) {
+    openQrAddDialogBtn.hidden = true;
+    openImportDialogBtn.hidden = true;
+  }
+
   let cachedEntries = [];
   let currentPage = 1;
   let pendingPreview = null;
