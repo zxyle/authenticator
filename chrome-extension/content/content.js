@@ -79,11 +79,32 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'totp-autofill-btn';
-        btn.textContent = forHost.length ? t('contentFillWithAuthenticator') : t('contentAddTotpToFill');
+        const label = forHost.length ? t('contentFillWithAuthenticator') : t('contentAddTotpToFill');
+        btn.title = label;
         btn.style.cssText =
-          'font-size:12px;padding:2px 8px;border:1px solid #1a73e8;border-radius:4px;background:#1a73e8;color:#fff;cursor:pointer;';
-        btn.onmouseover = () => (btn.style.background = '#1765cc');
-        btn.onmouseout = () => (btn.style.background = '#1a73e8');
+          'display:inline-flex;align-items:center;gap:0;font-size:12px;padding:2px;border:none;outline:none;border-radius:4px;background:transparent;color:#fff;cursor:pointer;max-width:22px;overflow:hidden;white-space:nowrap;transition:max-width .25s ease,padding .25s ease,gap .25s ease,background .15s ease;';
+        const icon = document.createElement('img');
+        icon.src = chrome.runtime.getURL('icons/icon48.png');
+        icon.style.cssText = 'width:18px;height:18px;flex-shrink:0;pointer-events:none;';
+        const labelSpan = document.createElement('span');
+        labelSpan.textContent = label;
+        labelSpan.style.cssText = 'opacity:0;transition:opacity .2s ease .05s;pointer-events:none;';
+        btn.appendChild(icon);
+        btn.appendChild(labelSpan);
+        btn.onmouseover = () => {
+          btn.style.maxWidth = '260px';
+          btn.style.padding = '2px 8px 2px 4px';
+          btn.style.gap = '4px';
+          btn.style.background = '#1a73e8';
+          labelSpan.style.opacity = '1';
+        };
+        btn.onmouseout = () => {
+          btn.style.maxWidth = '22px';
+          btn.style.padding = '2px';
+          btn.style.gap = '0';
+          btn.style.background = 'transparent';
+          labelSpan.style.opacity = '0';
+        };
         wrap.appendChild(btn);
         if (input.parentNode) {
           input.parentNode.insertBefore(wrap, input.nextSibling);
